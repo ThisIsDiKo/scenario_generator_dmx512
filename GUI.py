@@ -26,7 +26,7 @@ class Panel(QWidget):
         self.rows = 5
         self.cols = 10
         self.currentSlide = 0
-        self.numOfSlides = 10
+        self.numOfSlides = 0
         self.timingIncrement = 200
 
         self.btnNew = QPushButton('NEW')
@@ -67,6 +67,7 @@ class Panel(QWidget):
 
         self.btnInsertSlide = QPushButton('Insert')
         self.btnAppendSlide = QPushButton('Append')
+        self.btnAcceptSlide = QPushButton('Accept')
         self.btnDeleteSlide = QPushButton('Delete')
 
         self.txtCurSlide.editingFinished.connect(self.txtEditingFinished)
@@ -74,6 +75,7 @@ class Panel(QWidget):
         self.btnPrevSlide.clicked.connect(self.prevSlideClicked)
         self.btnNextSlide.clicked.connect(self.nextSlideClicked)
         self.btnAppendSlide.clicked.connect(self.appendSlideClicked)
+        self.btnAcceptSlide.clicked.connect(self.acceptSlideClicked)
 
         self.controlBtnsLayout = QHBoxLayout()
         self.controlBtnsLayout.addWidget(self.btnPrevSlide)
@@ -89,6 +91,7 @@ class Panel(QWidget):
         self.controlBtnsLayout.addStretch()
         self.controlBtnsLayout.addWidget(self.btnInsertSlide)
         self.controlBtnsLayout.addWidget(self.btnAppendSlide)
+        self.controlBtnsLayout.addWidget(self.btnAcceptSlide)
         self.controlBtnsLayout.addWidget(self.btnDeleteSlide)
 
         self.mainLayout = QVBoxLayout()
@@ -145,7 +148,9 @@ class Panel(QWidget):
         self.setLayout(self.mainLayout)
         self.setWindowTitle('Scenario generator panel')
         self.show()
-
+    def acceptSlideClicked(self):
+        pass
+    
     def appendSlideClicked(self):
         slideIndex = self.scenario.get_num_of_slides()
         timing = self.scenario.get_slide(slideIndex-1).get_timing() + self.timingIncrement
@@ -154,8 +159,9 @@ class Panel(QWidget):
         self.scenario.append_slide(newSlide)
 
         self.txtTime.setText(str(timing))
-        self.txtCurSlide.setText(str(slideIndex))
+        self.txtCurSlide.setText(str(slideIndex+1))
         self.lblNumOfSlides.setText(str(self.scenario.get_num_of_slides()))
+        self.numOfSlides = self.scenario.get_num_of_slides()
 
         for i in range(self.rows):
             for j in range(self.cols):
@@ -204,11 +210,13 @@ class Panel(QWidget):
         print(self.txtCurSlide.text())
 
     def prevSlideClicked(self):
+        self.currentSlide = int(self.txtCurSlide.text())
         if self.currentSlide > 1:
             self.currentSlide -= 1
         self.updateSlideNum()
 
     def nextSlideClicked(self):
+        self.currentSlide = int(self.txtCurSlide.text())
         if self.currentSlide < self.numOfSlides:
             self.currentSlide += 1
         self.updateSlideNum()
