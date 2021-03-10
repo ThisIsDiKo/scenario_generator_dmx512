@@ -1,0 +1,22 @@
+QWidget{
+    background-color: lightslategray;
+    font: bold 10px;
+}
+
+
+QLineEdit[cssPanelLabel = "position"]{
+    border-radius: 10px;
+    qproperty-alignment: AlignCenter;
+    background-color: yellow;
+    selection-background-color: lightblue
+}
+QLineEdit[cssPanelLabel = "velocity"]{
+    qproperty-alignment: AlignCenter;
+    border-radius: 10px;
+    background-color: gray;
+    selection-background-color: lightblue
+}
+
+QHBoxLayout[gridLayout = "panelsLayout"]{
+    padding: 40px;
+}
