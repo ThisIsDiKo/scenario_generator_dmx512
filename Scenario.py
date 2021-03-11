@@ -25,17 +25,13 @@ class Slide:
 
     def print(self):
         print("Timing is {0}".format(self.timing))
-
-        print("Positions is:")
-        for row in self.position:
-            for col in row:
-                print(col, end=' ')
-            print()
-
-        print("Velocity is:")
-        for row in self.velocity:
-            for col in row:
-                print(col, end=' ')
+        print("Pos  |  Vel")
+        for i in range(len(self.position)):
+            for j in range(len(self.position[0])):
+                print(self.position[i][j], end=' ')
+            print(' |  ', end='')
+            for j in range(len(self.position[0])):
+                print(self.velocity[i][j], end=' ')
             print()
 
 
@@ -65,6 +61,12 @@ class Scenario:
     def set_current_slide(self, slideNum):
         self.currentSlide = slideNum
 
+    def get_rows(self):
+        return self.rows
+
+    def get_cols(self):
+        return self.cols
+
     def get_slide(self, index):
         try:
             return self.slides[index]
@@ -80,4 +82,21 @@ class Scenario:
     def update_timings(self, startindex, delta):
         for i in range(startindex, len(self.slides)):
             self.slides[i].set_timing(self.slides[i].get_timing() + delta)
+
+    def insert_slide(self, index, slide):
+        if slide is not None:
+            self.slides.insert(index, slide)
+
+    def delete_slide(self, index):
+        if 0 <= index < self.get_num_of_slides():
+            self.slides.pop(index)
+
+    def print_info(self):
+        print('\n------Scenario Data------')
+        print('rows: {0}\tcols: {1}'.format(self.rows, self.cols))
+        print('total number of slides: {0}'.format(self.get_num_of_slides()))
+        for i in range(self.get_num_of_slides()):
+            print('---Slide num {0} info:'.format(i))
+            self.slides[i].print()
+
 

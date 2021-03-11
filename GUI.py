@@ -7,6 +7,7 @@ from copy import deepcopy
 from NewScenarioDialog import CustomDialog
 
 from Scenario import Scenario, Slide
+import pickle
 
 
 class Panel(QWidget):
@@ -35,6 +36,10 @@ class Panel(QWidget):
         self.btnSaveAs = QPushButton('SAVE AS')
         self.lblNumOfRows = QLabel('0')
         self.lblNumOfCols = QLabel('0')
+
+
+        self.btnSave.clicked.connect(self.save_clicked)
+        self.btnOpen.clicked.connect(self.open_clicked)
 
         self.fileLayout = QHBoxLayout()
         self.fileLayout.addWidget(self.btnNew)
@@ -76,6 +81,8 @@ class Panel(QWidget):
         self.btnNextSlide.clicked.connect(self.nextSlideClicked)
         self.btnAppendSlide.clicked.connect(self.appendSlideClicked)
         self.btnAcceptSlide.clicked.connect(self.acceptSlideClicked)
+        self.btnInsertSlide.clicked.connect(self.insert_clicked)
+        self.btnDeleteSlide.clicked.connect(self.delete_clicked)
 
         self.controlBtnsLayout = QHBoxLayout()
         self.controlBtnsLayout.addWidget(self.btnPrevSlide)
@@ -136,7 +143,10 @@ class Panel(QWidget):
         self.panelsLayout.addLayout(self.velocityLayout)
         #self.redrawPanels()
 
-
+        self.btnDebug = QPushButton('Debug')
+        self.btnDebug.clicked.connect(self.debug_clicked)
+        self.btnProcess = QPushButton('Process')
+        self.btnProcess.clicked.connect(self.generate_clicked)
 
 
         self.mainLayout.addLayout(self.fileLayout)
@@ -144,19 +154,118 @@ class Panel(QWidget):
         self.mainLayout.addLayout(self.controlBtnsLayout)
         self.mainLayout.addSpacing(20)
         self.mainLayout.addLayout(self.panelsLayout)
+        self.mainLayout.addSpacing(20)
+        self.mainLayout.addWidget(self.btnDebug)
+        self.mainLayout.addSpacing(20)
+        self.mainLayout.addWidget(self.btnProcess)
 
         self.setLayout(self.mainLayout)
         self.setWindowTitle('Scenario generator panel')
         self.show()
+
+    def delete_clicked(self):
+        slideIndex = int(self.txtCurSlide.text()) - 1
+        self.currentSlide = slideIndex+1
+        if slideIndex == 0 and self.scenario.get_num_of_slides() == 1:
+            print('cant delete single slide')
+            return
+        elif slideIndex == 0:
+            nextSlide = 1
+        else:
+            nextSlide = slideIndex - 1
+
+        self.slide = self.scenario.get_slide(nextSlide)
+        self.scenario.delete_slide(slideIndex)
+        self.updateSlideNum()
+        self.txtCurSlide.setText(str(slideIndex+1))
+        self.lblNumOfSlides.setText(str(self.scenario.get_num_of_slides()))
+
+
+    def insert_clicked(self):
+        slideIndex = int(self.txtCurSlide.text())
+        slide = deepcopy(self.scenario.get_slide(slideIndex-1))
+        self.scenario.insert_slide(slideIndex, slide)
+
+        self.slide = slide
+
+        self.nextSlideClicked()
+        self.lblNumOfSlides.setText(str(self.scenario.get_num_of_slides()))
+
+    def save_clicked(self):
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "Scenario files (*.bsc)")
+        if fileName:
+            print(fileName)
+            pickle.dump(self.scenario, open(fileName, "wb"))
+
+    def open_clicked(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+                                                  "Scenario files (*.bsc)",)
+        if fileName:
+            print(fileName)
+            self.scenario = pickle.load(open(fileName, "rb"))
+
+            if self.scenario.get_rows() < 1 or self.scenario.get_cols() < 1:
+                print('Wrong Scenario')
+                return
+            else:
+                self.scenario.print_info()
+                self.rows = self.scenario.get_rows()
+                self.cols = self.scenario.get_cols()
+                self.redrawPanels()
+
+                slideIndex = 1
+                slide = self.scenario.get_slide(slideIndex-1)
+                self.txtCurSlide.setText(str(slideIndex))
+                self.numOfSlides = self.scenario.get_num_of_slides()
+                print("num os slides {0}".format(self.numOfSlides))
+                self.lblNumOfSlides.setText(str(self.numOfSlides))
+
+                if slide is not None:
+                    self.slide = slide
+                    self.slide.print()
+                    self.txtTime.setText(str(self.slide.get_timing()))
+                    for i in range(self.rows):
+                        for j in range(self.cols):
+                            self.listOfPos[i][j].setText(str(self.slide.get_position()[i][j]))
+                            self.listOfVel[i][j].setText(str(self.slide.get_velocity()[i][j]))
+
+
+    def debug_clicked(self):
+        self.scenario.print_info()
+
+    def generate_clicked(self):
+        print('generate clicked')
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "txt scenario (*.txt)")
+        if fileName:
+            print(fileName)
+            with open(fileName, 'w') as f:
+                for slide in self.scenario.slides:
+                    msg = ""
+                    msg += str(slide.timing)
+                    msg += ":"
+                    for i in range(len(slide.get_position())):
+                        for j in range(len(slide.get_position()[0])):
+                            msg += str(slide.get_position()[i][j])
+                            msg += ","
+                            msg += str(slide.get_velocity()[i][j])
+                            if j != (len(slide.get_position()[0]) - 1):
+                                msg += ";"
+                    if i != (len(slide.get_position()) - 1):
+                        msg += '\n'
+                    f.write(msg)
+
     def acceptSlideClicked(self):
         pass
     
     def appendSlideClicked(self):
         slideIndex = self.scenario.get_num_of_slides()
+        self.timingIncrement = int(self.txtTimeIncrement.text())
         timing = self.scenario.get_slide(slideIndex-1).get_timing() + self.timingIncrement
-        newSlide = deepcopy(self.scenario.get_slide(slideIndex-1))
-        newSlide.set_timing(timing)
-        self.scenario.append_slide(newSlide)
+        self.slide = deepcopy(self.scenario.get_slide(slideIndex-1))
+        self.slide.set_timing(timing)
+        self.scenario.append_slide(self.slide)
 
         self.txtTime.setText(str(timing))
         self.txtCurSlide.setText(str(slideIndex+1))
@@ -165,21 +274,21 @@ class Panel(QWidget):
 
         for i in range(self.rows):
             for j in range(self.cols):
-                self.listOfPos[i][j].setText(str(self.scenario.get_slide(slideIndex).get_position()[i][j]))
-                self.listOfVel[i][j].setText(str(self.scenario.get_slide(slideIndex).get_velocity()[i][j]))
+                self.listOfPos[i][j].setText(str(self.slide.get_position()[i][j]))
+                self.listOfVel[i][j].setText(str(self.slide.get_velocity()[i][j]))
 
 
     def time_change(self):
         slideIndex = int(self.txtCurSlide.text()) - 1
         slideTiming = int(self.txtTime.text())
         if slideIndex > 0:
-            if slideTiming > self.scenario.get_slide(slideIndex-1).get_timing():
+            if slideTiming < self.scenario.get_slide(slideIndex-1).get_timing():
                 print('wrong time')
                 self.txtTime.setText(str(self.scenario.get_slide(slideIndex-1).get_timing()))
                 return
 
             prevSlideTiming = self.scenario.get_slide(slideIndex).get_timing()
-            deltaTiming = prevSlideTiming - slideTiming
+            deltaTiming = slideTiming - prevSlideTiming
             self.scenario.get_slide(slideIndex).set_timing(slideTiming)
 
             self.scenario.update_timings(startindex=slideIndex+1, delta=deltaTiming)
@@ -195,6 +304,7 @@ class Panel(QWidget):
                 self.rows = int(dlg.txtRowsNumber.text())
                 self.cols = int(dlg.txtColsNumber.text())
                 self.redrawPanels()
+                self.init_scenario()
             except:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
@@ -226,6 +336,22 @@ class Panel(QWidget):
 
     def updateSlideNum(self):
         self.txtCurSlide.setText(str(self.currentSlide))
+        #Достаем слайд из сценария и присваиваем его редактируемому слайду
+        slideIndex = int(self.txtCurSlide.text())-1
+
+        slide = self.scenario.get_slide(slideIndex)
+        if slide is not None:
+            self.slide = slide
+            self.slide.print()
+            self.txtTime.setText(str(self.slide.get_timing()))
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    self.listOfPos[i][j].setText(str(self.slide.get_position()[i][j]))
+                    self.listOfVel[i][j].setText(str(self.slide.get_velocity()[i][j]))
+        else:
+            print('Получен пустой слайд')
+
+
 
     def redrawPanels(self):
         self.listOfPos = []
@@ -237,9 +363,7 @@ class Panel(QWidget):
         self.clearLayout(self.positionTable)
         self.clearLayout(self.velocityTable)
 
-        self.scenario = Scenario()
-        self.scenario.set_cols(self.cols)
-        self.scenario.set_rows(self.rows)
+
 
         for i in range(self.rows):
             tP = []
@@ -265,8 +389,21 @@ class Panel(QWidget):
                 self.positionTable.addWidget(self.listOfPos[i][j], i+1, j)
                 self.velocityTable.addWidget(self.listOfVel[i][j], i+1, j)
 
+
+
+        self.currentSlide = 0
+        self.txtCurSlide.setText(str(self.currentSlide+1))
+
+
+
+    def init_scenario(self):
         position = []
         velocity = []
+
+        self.scenario = Scenario()
+        self.scenario.set_cols(self.cols)
+        self.scenario.set_rows(self.rows)
+
         for i in range(self.rows):
             tP = []
             tV = []
@@ -280,13 +417,7 @@ class Panel(QWidget):
         self.slide.set_position(position)
         self.slide.set_velocity(velocity)
         self.scenario.set_slide(self.slide, 0)
-
-        self.currentSlide = 0
-        self.txtCurSlide.setText(str(self.currentSlide+1))
         self.lblNumOfSlides.setText(str(self.scenario.get_num_of_slides()))
-
-
-
 
     def setPositionClicked(self):
         for i in range(self.rows):
