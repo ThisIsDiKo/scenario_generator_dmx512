@@ -21,6 +21,9 @@ class Panel(QWidget):
             pass
 
 
+        self.lastPosEntered = 0
+        self.lastVelocityEntered = 0
+
         self.scenario = None
         self.slide = Slide()
 
@@ -252,8 +255,8 @@ class Panel(QWidget):
                             msg += str(slide.get_velocity()[i][j])
                             if j != (len(slide.get_position()[0]) - 1):
                                 msg += ";"
-                    if i != (len(slide.get_position()) - 1):
-                        msg += '\n'
+                        if i != (len(slide.get_position()) - 1):
+                            msg += '\n'
                     f.write(msg)
 
     def acceptSlideClicked(self):
@@ -303,8 +306,7 @@ class Panel(QWidget):
             try:
                 self.rows = int(dlg.txtRowsNumber.text())
                 self.cols = int(dlg.txtColsNumber.text())
-                self.redrawPanels()
-                self.init_scenario()
+
             except:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
@@ -312,6 +314,9 @@ class Panel(QWidget):
                 msg.setInformativeText('Введите числовые значения')
                 msg.setWindowTitle("Ошибка")
                 msg.exec_()
+
+            self.redrawPanels()
+            self.init_scenario()
         else:
             print("Cancel!")
 
@@ -373,7 +378,8 @@ class Panel(QWidget):
                 # lableP.classes = "cssPanelLabel"
                 lableP.setProperty('cssPanelLabel', 'position')
                 lableP.setFixedSize(40, 20)
-                lableP.editingFinished.connect(self.updatePanels)
+                lableP.editingFinished.connect(lambda: self.position_updated(i, j))
+                #lableP.mouseDoubleClicked.connect(lambda: self.panel_double_click(i, j, 'pos'))
 
                 lableV = QLineEdit('100')
                 lableV.setProperty('cssPanelLabel', 'velocity')
@@ -394,7 +400,13 @@ class Panel(QWidget):
         self.currentSlide = 0
         self.txtCurSlide.setText(str(self.currentSlide+1))
 
+    def panel_double_click(self, row, col, panel):
+        if panel == 'pos':
+            self.listOfPos[row][col].setText(str(self.lastPosEntered))
 
+    def position_updated(self, row, col):
+        self.lastPosEntered = int(self.listOfPos[row][col].text())
+        self.updatePanels()
 
     def init_scenario(self):
         position = []
